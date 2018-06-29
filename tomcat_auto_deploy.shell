@@ -1,0 +1,50 @@
+#!/bin/sh
+app_name=apache-tomcat
+app_dir=/data/Webserver/apache-tomcat/bin
+#包名称
+name=$1
+#下载的包路径
+url=$2
+
+
+echo "正在下载$name.tar.gz 版本号$1"
+#下载程序包
+curl -O $url
+sleep 2
+
+echo "解压$name.tar.gz"
+tar -xzf $name.tar.gz
+
+echo "检查停止tomcat"
+jod=`ps -ef |grep -w $app_name|grep -v interface|grep -v grep|grep -v tail|grep -v .sh`
+if [ $? -eq 1 ]
+  then
+    echo "[$app_name未启动,无需停止]"
+    exit 0
+ else
+    echo "[正在停止$app_name,大概需要10S]"
+    $app_dir/shutdown.sh
+    sleep 10s
+fi
+
+echo "[$app_name正在启动,大约需要10S]"
+
+
+$app_dir/startup.sh
+sleep 10s
+
+#检查是否启动成功
+if [ $? -eq 0 ]
+  then
+    check_port=`netstat -nltp|grep -w 8087|grep LISTEN|grep -v grep|grep -v .sh`
+    if [ $? -eq 0 ]
+      then
+        echo "[$app_name启动成功]"
+    else
+        echo "[$app_name启动失败,请检查日志]"
+        exit 1
+    fi
+  else
+    echo "[未获取到$app_name监听端口,可能启动失败,请检查日志]"
+    exit 1
+fi
